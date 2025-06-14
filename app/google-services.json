@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "528418862910",
+    "firebase_url": "https://cow-manager-application-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "cow-manager-application",
+    "storage_bucket": "cow-manager-application.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:528418862910:android:127990fcfdf7e7381bde6f",
+        "android_client_info": {
+          "package_name": "com.example.new_cow_manager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7th3lksF0IG_uG3YovmVCBS5pFyJlzbk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
