@@ -1,24 +1,26 @@
 package com.example.new_cow_manager.ui.screens
 
 import android.content.Context
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.new_cow_manager.ui.viewmodels.AddEditCowViewModel
 import com.example.new_cow_manager.ui.viewmodels.AddEditCowViewModelFactory
-import kotlinx.datetime.LocalDate
-import androidx.compose.ui.platform.LocalContext
+import kotlinx.datetime.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,123 +106,117 @@ fun AddEditCowScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Pregnancy Details", style = MaterialTheme.typography.titleMedium)
+                    Text("Pregnancy Information", style = MaterialTheme.typography.titleMedium)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Text("Pregnant")
                         Switch(
                             checked = uiState.pregnant,
                             onCheckedChange = { viewModel.updatePregnant(it) }
                         )
-                        Text("Is Pregnant")
-                        if (uiState.doNotMilk) {
-                            AssistChip(
-                                onClick = { },
-                                label = { Text("Do Not Milk") },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    labelColor = MaterialTheme.colorScheme.error
-                                )
-                            )
-                        }
                     }
 
                     if (uiState.pregnant) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedTextField(
-                                value = uiState.pregnancyDuration.toString(),
+                                value = if (uiState.pregnancyDuration > 0) uiState.pregnancyDuration.toString() else "",
                                 onValueChange = {
-                                    viewModel.updatePregnancyDuration(it.toIntOrNull() ?: 0)
+                                    val days = it.toIntOrNull() ?: 0
+                                    viewModel.updatePregnancyDuration(days)
                                 },
-                                label = { Text("Days") },
-                                modifier = Modifier.weight(1f)
+                                label = { Text("Pregnancy Duration (days)") },
+                                modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                             )
+                            Spacer(modifier = Modifier.width(8.dp))
                             OutlinedTextField(
-                                value = uiState.pregnancyMonths.toString(),
+                                value = if (uiState.pregnancyMonths > 0) uiState.pregnancyMonths.toString() else "",
                                 onValueChange = {
-                                    viewModel.updatePregnancyMonths(it.toIntOrNull() ?: 0)
+                                    val months = it.toIntOrNull() ?: 0
+                                    viewModel.updatePregnancyMonths(months)
                                 },
                                 label = { Text("Months") },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            )
+                        }
+
+                        if (uiState.doNotMilk) {
+                            Text(
+                                "Do not milk this cow",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(top = 4.dp)
                             )
                         }
                     }
                 }
             }
 
-//            // GGPG Protocol Section
-//            Card(modifier = Modifier.fillMaxWidth()) {
-//                Column(
-//                    modifier = Modifier.padding(16.dp),
-//                    verticalArrangement = Arrangement.spacedBy(8.dp)
-//                ) {
-//                    Text("GGPG Protocol", style = MaterialTheme.typography.titleMedium)
-//
-//                    OutlinedButton(
-//                        onClick = { showDatePicker = DatePickerType.GGPG_FIRST_G },
-//                        modifier = Modifier.fillMaxWidth()
-//                    ) {
-//                        Text(
-//                            if (uiState.ggpgFirstG != null)
-//                                "First G: ${uiState.ggpgFirstG}"
-//                            else
-//                                "Set First G Date"
-//                        )
-//                    }
-//
-//                    if (uiState.ggpgFirstG != null) {
-//                        OutlinedButton(
-//                            onClick = { showDatePicker = DatePickerType.GGPG_SECOND_G },
-//                            modifier = Modifier.fillMaxWidth(),
-//                            enabled = uiState.ggpgFirstG != null
-//                        ) {
-//                            Text(
-//                                if (uiState.ggpgSecondG != null)
-//                                    "Second G: ${uiState.ggpgSecondG}"
-//                                else
-//                                    "Second G (7 days after First G)"
-//                            )
-//                        }
-//
-//                        OutlinedButton(
-//                            onClick = { showDatePicker = DatePickerType.GGPG_P },
-//                            modifier = Modifier.fillMaxWidth(),
-//                            enabled = uiState.ggpgSecondG != null
-//                        ) {
-//                            Text(
-//                                if (uiState.ggpgP != null)
-//                                    "P: ${uiState.ggpgP}"
-//                                else
-//                                    "P (56 hours after Second G)"
-//                            )
-//                        }
-//
-//                        OutlinedButton(
-//                            onClick = { showDatePicker = DatePickerType.GGPG_FINAL_G },
-//                            modifier = Modifier.fillMaxWidth(),
-//                            enabled = uiState.ggpgP != null
-//                        ) {
-//                            Text(
-//                                if (uiState.ggpgFinalG != null)
-//                                    "Final G: ${uiState.ggpgFinalG}"
-//                                else
-//                                    "Final G (2 days after P)"
-//                            )
-//                        }
-//
-////                        Button(
-////                            onClick = { viewModel.calculateAndSetGgpgDates() },
-////                            modifier = Modifier.fillMaxWidth()
-////                        ) {
-////                            Text("Auto-calculate GGPG Dates")
-////                        }
-//                    }
-//                }
-//            }
+            // GGPG Protocol Section
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("GGPG Protocol", style = MaterialTheme.typography.titleMedium)
+
+                    OutlinedButton(
+                        onClick = { showDatePicker = DatePickerType.GGPG_FIRST_G },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !uiState.pregnant // Disable if cow is pregnant
+                    ) {
+                        Text(
+                            if (uiState.ggpgFirstG != null)
+                                "First G: ${uiState.ggpgFirstG}"
+                            else
+                                "Set First G Date"
+                        )
+                    }
+
+                    if (uiState.pregnant) {
+                        Text(
+                            "GGPG protocol cannot be started for pregnant cows",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    if (uiState.ggpgFirstG != null) {
+                        OutlinedButton(
+                            onClick = { showDatePicker = DatePickerType.GGPG_FIRST_G },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = false
+                        ) {
+                            Text("Second G: ${uiState.ggpgSecondG ?: "Calculating..."}")
+                        }
+
+                        OutlinedButton(
+                            onClick = { showDatePicker = DatePickerType.GGPG_FIRST_G },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = false
+                        ) {
+                            Text("P: ${uiState.ggpgP ?: "Calculating..."}")
+                        }
+
+                        OutlinedButton(
+                            onClick = { showDatePicker = DatePickerType.GGPG_FIRST_G },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = false
+                        ) {
+                            Text("Final G: ${uiState.ggpgFinalG ?: "Calculating..."}")
+                        }
+                    }
+                }
+            }
 
             // Dates Section
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -248,10 +244,25 @@ fun AddEditCowScreen(
                     ) {
                         Text(
                             if (uiState.birthDate != null)
-                                "Birth Date: ${uiState.birthDate}"
+                                "Given birth at: ${uiState.birthDate}"
                             else
-                                "Set Birth Date"
+                                "Set Given birth date"
                         )
+                    }
+
+                    if (uiState.pregnant && uiState.pregnancyDuration > 0) {
+                        val daysUntilCalving = 280 - uiState.pregnancyDuration
+                        if (daysUntilCalving > 0) {
+                            val currentDate = Clock.System.now()
+                                .toLocalDateTime(TimeZone.currentSystemDefault())
+                                .date
+                            val estimatedCalvingDate = currentDate.plus(DatePeriod(days = daysUntilCalving))
+                            Text(
+                                "Estimated calving date: $estimatedCalvingDate (in $daysUntilCalving days)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
@@ -285,25 +296,80 @@ fun AddEditCowScreen(
                         }
 
                         // Add new hormone
+                        var expanded by remember { mutableStateOf(false) }
+                        var selectedHormone by remember { mutableStateOf<String?>(null) }
+                        var otherHormone by remember { mutableStateOf("") }
+
+                        val hormoneTypes = listOf("GnRH", "PGF2α", "Other")
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            OutlinedTextField(
-                                value = newHormone,
-                                onValueChange = { newHormone = it },
-                                label = { Text("Hormone Name") },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true
-                            )
-                            Button(
-                                onClick = {
-                                    if (newHormone.isNotBlank()) {
-                                        showHormoneDatePicker = newHormone to true
+                            Box(modifier = Modifier.weight(1f)) {
+                                OutlinedTextField(
+                                    value = selectedHormone ?: "",
+                                    onValueChange = { },
+                                    label = { Text("Select Hormone") },
+                                    readOnly = true,
+                                    trailingIcon = {
+                                        IconButton(onClick = { expanded = !expanded }) {
+                                            Icon(
+                                                Icons.Default.ArrowDropDown,
+                                                contentDescription = "Select hormone"
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    hormoneTypes.forEach { type ->
+                                        DropdownMenuItem(
+                                            text = { Text(type) },
+                                            onClick = {
+                                                selectedHormone = type
+                                                expanded = false
+                                                if (type != "Other") {
+                                                    showHormoneDatePicker = type to true
+                                                    selectedHormone = null
+                                                }
+                                            }
+                                        )
                                     }
                                 }
+                            }
+                        }
+
+                        if (selectedHormone == "Other") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Add")
+                                OutlinedTextField(
+                                    value = otherHormone,
+                                    onValueChange = { otherHormone = it },
+                                    label = { Text("Hormone Name") },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true
+                                )
+                                Button(
+                                    onClick = {
+                                        if (otherHormone.isNotBlank()) {
+                                            showHormoneDatePicker = otherHormone to true
+                                            otherHormone = ""
+                                            selectedHormone = null
+                                        }
+                                    }
+                                ) {
+                                    Text("Add")
+                                }
                             }
                         }
                     }
@@ -377,10 +443,10 @@ fun AddEditCowScreen(
                 initialSelectedDateMillis = when (type) {
                     DatePickerType.INSEMINATION -> uiState.inseminationDate?.toEpochDays()?.times(86400000L)
                     DatePickerType.BIRTH -> uiState.birthDate?.toEpochDays()?.times(86400000L)
-//                    DatePickerType.GGPG_FIRST_G -> uiState.ggpgFirstG?.toEpochDays()?.times(86400000L)
-//                    DatePickerType.GGPG_SECOND_G -> uiState.ggpgSecondG?.toEpochDays()?.times(86400000L)
-//                    DatePickerType.GGPG_P -> uiState.ggpgP?.toEpochDays()?.times(86400000L)
-//                    DatePickerType.GGPG_FINAL_G -> uiState.ggpgFinalG?.toEpochDays()?.times(86400000L)
+                    DatePickerType.GGPG_FIRST_G -> uiState.ggpgFirstG?.toEpochDays()?.times(86400000L)
+                    DatePickerType.GGPG_SECOND_G -> uiState.ggpgSecondG?.toEpochDays()?.times(86400000L)
+                    DatePickerType.GGPG_P -> uiState.ggpgP?.toEpochDays()?.times(86400000L)
+                    DatePickerType.GGPG_FINAL_G -> uiState.ggpgFinalG?.toEpochDays()?.times(86400000L)
                 } ?: System.currentTimeMillis()
             )
 
@@ -394,10 +460,10 @@ fun AddEditCowScreen(
                                 when (type) {
                                     DatePickerType.INSEMINATION -> viewModel.updateInseminationDate(localDate)
                                     DatePickerType.BIRTH -> viewModel.updateBirthDate(localDate)
-//                                    DatePickerType.GGPG_FIRST_G -> viewModel.updateGgpgFirstG(localDate)
-//                                    DatePickerType.GGPG_SECOND_G -> viewModel.updateGgpgSecondG(localDate)
-//                                    DatePickerType.GGPG_P -> viewModel.updateGgpgP(localDate)
-//                                    DatePickerType.GGPG_FINAL_G -> viewModel.updateGgpgFinalG(localDate)
+                                    DatePickerType.GGPG_FIRST_G -> viewModel.setGGPGFirstG(localDate)
+                                    DatePickerType.GGPG_SECOND_G,
+                                    DatePickerType.GGPG_P,
+                                    DatePickerType.GGPG_FINAL_G -> { /* These are auto-calculated */ }
                                 }
                             }
                             showDatePicker = null
@@ -465,7 +531,20 @@ private fun MedicalObservationSection(
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(title, style = MaterialTheme.typography.titleSmall)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            if (observations.size >= 2) {
+                Text(
+                    "Maximum 2 entries reached",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
 
         observations.forEach { (side, obsInfo) ->
             Row(
@@ -487,34 +566,33 @@ private fun MedicalObservationSection(
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Dropdown for side selection using standard dropdown
-            Box(
-                modifier = Modifier.width(100.dp) // Fixed width for the dropdown
-            ) {
+            Box(modifier = Modifier.width(120.dp)) {
                 OutlinedTextField(
                     value = selectedSide,
                     onValueChange = {},
                     readOnly = true,
-                    modifier = Modifier.fillMaxWidth(),
                     label = { Text("Side") },
                     singleLine = true,
                     trailingIcon = {
                         IconButton(onClick = { expanded = !expanded }) {
                             Icon(
-                                if (expanded) Icons.AutoMirrored.Filled.ArrowBack
-                                else Icons.Default.ArrowDropDown,
+                                Icons.Default.ArrowDropDown,
                                 contentDescription = "Select side"
                             )
                         }
-                    }
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
+
                 DropdownMenu(
                     expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    modifier = Modifier.width(100.dp)
+                    onDismissRequest = { expanded = false }
                 ) {
                     sides.forEach { side ->
                         DropdownMenuItem(
@@ -534,7 +612,6 @@ private fun MedicalObservationSection(
                 }
             }
 
-            // Optional info field
             OutlinedTextField(
                 value = info,
                 onValueChange = { info = it },
@@ -550,9 +627,11 @@ private fun MedicalObservationSection(
                         "R" -> "Right"
                         else -> selectedSide
                     }
-                    onAdd(sideValue, info)
-                    info = ""
-                }
+                    if (observations.size < 2) {
+                        onAdd(sideValue, info)
+                        info = ""  // Reset the info field after adding
+                    }
+                },
             ) {
                 Text("Add")
             }
@@ -563,8 +642,8 @@ private fun MedicalObservationSection(
 enum class DatePickerType {
     INSEMINATION,
     BIRTH,
-//    GGPG_FIRST_G,
-//    GGPG_SECOND_G,
-//    GGPG_P,
-//    GGPG_FINAL_G
+    GGPG_FIRST_G,
+    GGPG_SECOND_G,
+    GGPG_P,
+    GGPG_FINAL_G
 }

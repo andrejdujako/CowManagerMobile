@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.new_cow_manager.data.model.Cow
 import com.example.new_cow_manager.data.repository.CowRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -21,6 +22,8 @@ class CowDetailsViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
 
+    private var observingJob: Job? = null
+
     val examinations = repository.getCowExaminations(cowId)
         .catch { e ->
             _error.value = "Failed to load examinations: ${e.message}"
@@ -33,6 +36,23 @@ class CowDetailsViewModel(
 
     init {
         loadCowDetails()
+    }
+
+    fun startObservingCow() {
+        observingJob = viewModelScope.launch {
+            repository.observeCowById(cowId)
+                .catch { e ->
+                    _error.value = "Failed to observe cow updates: ${e.message}"
+                }
+                .collect { updatedCow ->
+                    _cow.value = updatedCow
+                }
+        }
+    }
+
+    fun stopObservingCow() {
+        observingJob?.cancel()
+        observingJob = null
     }
 
     private fun loadCowDetails() {
@@ -54,5 +74,10 @@ class CowDetailsViewModel(
     fun retryLoading() {
         _error.value = null
         loadCowDetails()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopObservingCow()
     }
 }

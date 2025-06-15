@@ -5,18 +5,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.new_cow_manager.data.model.Cow
 import com.example.new_cow_manager.data.model.CowExamination
 import com.example.new_cow_manager.ui.viewmodels.CowDetailsViewModel
+import kotlinx.datetime.*
+import kotlinx.datetime.TimeZone
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -32,6 +32,17 @@ fun CowDetailsScreen(
     val examinations by viewModel.examinations.collectAsState()
     val error by viewModel.error.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    // Effect to refresh data when screen is focused
+    LaunchedEffect(Unit) {
+        viewModel.startObservingCow()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.stopObservingCow()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -84,17 +95,42 @@ fun CowDetailsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(vertical = 16.dp)
                 ) {
-                    // Basic Information
+                    // Basic Information with Do not milk warning
                     item {
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text(
-                                    "Cow #${cow?.cowNumber}",
-                                    style = MaterialTheme.typography.headlineMedium
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        "Cow #${cow?.cowNumber}",
+                                        style = MaterialTheme.typography.headlineMedium
+                                    )
+                                    if (cow?.doNotMilk == true) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Warning,
+                                                contentDescription = "Warning",
+                                                tint = MaterialTheme.colorScheme.error
+                                            )
+                                            Text(
+                                                "DO NOT MILK",
+                                                color = MaterialTheme.colorScheme.error,
+                                                style = MaterialTheme.typography.labelLarge,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+
                                 AssistChip(
                                     onClick = { },
                                     label = {
@@ -115,6 +151,71 @@ fun CowDetailsScreen(
                         }
                     }
 
+                    // GGPG Protocol Section (if active)
+                    cow?.ggpgFirstG?.let { firstG ->
+                        item {
+                            Card(modifier = Modifier.fillMaxWidth()) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text("GGPG Protocol", style = MaterialTheme.typography.titleMedium)
+
+                                    val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                                    val ggpgStatus = when {
+                                        currentDate < firstG -> "Upcoming"
+                                        currentDate > cow?.ggpgFinalG!! -> "Completed"
+                                        else -> "In Progress"
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Status: $ggpgStatus",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = when(ggpgStatus) {
+                                                "Upcoming" -> MaterialTheme.colorScheme.primary
+                                                "In Progress" -> MaterialTheme.colorScheme.tertiary
+                                                else -> MaterialTheme.colorScheme.secondary
+                                            }
+                                        )
+
+                                        // Show next step more prominently if in progress
+                                        if (ggpgStatus == "In Progress") {
+                                            val nextStep = when {
+                                                currentDate < firstG -> "First G"
+                                                currentDate < cow?.ggpgSecondG!! -> "Second G"
+                                                currentDate < cow?.ggpgP!! -> "P Treatment"
+                                                else -> "Final G"
+                                            }
+                                            AssistChip(
+                                                onClick = { },
+                                                label = { Text("Next: $nextStep") },
+                                                colors = AssistChipDefaults.assistChipColors(
+                                                    labelColor = MaterialTheme.colorScheme.primary
+                                                )
+                                            )
+                                        }
+                                    }
+
+                                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+                                    Text("Treatment Schedule:", style = MaterialTheme.typography.titleSmall)
+                                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        GGPGDateItem("First G", firstG, currentDate)
+                                        cow?.ggpgSecondG?.let { GGPGDateItem("Second G", it, currentDate) }
+                                        cow?.ggpgP?.let { GGPGDateItem("P Treatment", it, currentDate) }
+                                        cow?.ggpgFinalG?.let { GGPGDateItem("Final G", it, currentDate) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Dates
                     item {
                         Card(modifier = Modifier.fillMaxWidth()) {
@@ -127,7 +228,21 @@ fun CowDetailsScreen(
                                     Text("Insemination Date: $it")
                                 }
                                 cow?.birthDate?.let {
-                                    Text("Birth Date: $it")
+                                    Text("Given birth at: $it")
+                                }
+                                if (cow?.pregnant == true && cow!!.pregnancyDuration > 0) {
+                                    val daysUntilCalving = 280 - cow!!.pregnancyDuration
+                                    if (daysUntilCalving > 0) {
+                                        val currentDate = Clock.System.now()
+                                            .toLocalDateTime(TimeZone.currentSystemDefault())
+                                            .date
+                                        val estimatedCalvingDate = currentDate.plus(DatePeriod(days = daysUntilCalving))
+                                        Text(
+                                            "Estimated calving date: $estimatedCalvingDate (in $daysUntilCalving days)",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -214,7 +329,7 @@ fun CowDetailsScreen(
                         }
                     }
 
-                    // Examination History
+                    // Examination history
                     if (examinations.isNotEmpty()) {
                         item {
                             Text(
@@ -263,20 +378,58 @@ private fun ExaminationCard(examination: CowExamination) {
             )
 
             examination.previousState?.let { prevState ->
-                if (prevState.pregnant != examination.newState?.pregnant) {
+                if (prevState.pregnant != examination.newState.pregnant) {
                     Text(
                         "Pregnancy Status Changed: ${if (prevState.pregnant) "Yes" else "No"} → " +
-                        "${if (examination.newState?.pregnant == true) "Yes" else "No"}"
+                        if (examination.newState.pregnant) "Yes" else "No"
                     )
                 }
 
-                if (prevState.diagnosis != examination.newState?.diagnosis) {
+                if (prevState.diagnosis != examination.newState.diagnosis) {
                     Text("Diagnosis Updated")
                 }
 
-                if (prevState.comment != examination.newState?.comment) {
+                if (prevState.comment != examination.newState.comment) {
                     Text("Comment Updated")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GGPGDateItem(label: String, date: LocalDate, currentDate: LocalDate) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = label)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = date.toString(),
+                color = when {
+                    currentDate == date -> MaterialTheme.colorScheme.primary
+                    currentDate > date -> MaterialTheme.colorScheme.secondary
+                    else -> LocalContentColor.current
+                }
+            )
+            if (currentDate == date) {
+                Icon(
+                    Icons.Default.Star,
+                    contentDescription = "Today",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+            } else if (currentDate > date) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = "Completed",
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }

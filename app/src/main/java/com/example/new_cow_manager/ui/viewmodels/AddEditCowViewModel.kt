@@ -4,10 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.new_cow_manager.data.model.Cow
 import com.example.new_cow_manager.data.repository.CowRepository
-import com.example.new_cow_manager.notifications.NotificationService
+import com.example.new_cow_manager.utils.NotificationService
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDate
+import kotlinx.datetime.*
 
 sealed class AddEditCowUiEvent {
     data class ShowError(val message: String) : AddEditCowUiEvent()
@@ -40,7 +40,7 @@ data class AddEditCowUiState(
 class AddEditCowViewModel(
     private val cowId: String?,
     private val repository: CowRepository = CowRepository(),
-//    private val notificationService: NotificationService
+    private val notificationService: NotificationService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddEditCowUiState())
@@ -66,6 +66,7 @@ class AddEditCowViewModel(
                             cowNumber = cow.cowNumber,
                             pregnant = cow.pregnant,
                             pregnancyDuration = cow.pregnancyDuration,
+                            pregnancyMonths = cow.pregnancyMonths,
                             inseminationDate = cow.inseminationDate,
                             birthDate = cow.birthDate,
                             appliedHormones = cow.appliedHormones,
@@ -75,6 +76,10 @@ class AddEditCowViewModel(
                             follicles = cow.follicles,
                             diagnosis = cow.diagnosis,
                             comment = cow.comment,
+                            ggpgFirstG = cow.ggpgFirstG,
+                            ggpgSecondG = cow.ggpgSecondG,
+                            ggpgP = cow.ggpgP,
+                            ggpgFinalG = cow.ggpgFinalG,
                             isLoading = false
                         )
                     }
@@ -106,9 +111,15 @@ class AddEditCowViewModel(
                     id = cowId ?: "",
                     cowNumber = currentState.cowNumber,
                     pregnant = currentState.pregnant,
-                    pregnancyDuration = if (currentState.pregnant) currentState.pregnancyDuration else 0,
+                    pregnancyDuration = currentState.pregnancyDuration,
+                    pregnancyMonths = currentState.pregnancyMonths,
+                    doNotMilk = currentState.pregnant && currentState.pregnancyDuration > 200,
                     inseminationDate = currentState.inseminationDate,
                     birthDate = currentState.birthDate,
+                    ggpgFirstG = currentState.ggpgFirstG,
+                    ggpgSecondG = currentState.ggpgSecondG,
+                    ggpgP = currentState.ggpgP,
+                    ggpgFinalG = currentState.ggpgFinalG,
                     appliedHormones = currentState.appliedHormones,
                     corpusLuteum = currentState.corpusLuteum,
                     corpusRubrum = currentState.corpusRubrum,
@@ -156,24 +167,20 @@ class AddEditCowViewModel(
     }
 
     fun updatePregnancyMonths(months: Int) {
-        _uiState.update {
-            it.copy(
+        _uiState.update { currentState ->
+            val days = months * 30 // Approximate conversion
+            currentState.copy(
                 pregnancyMonths = months,
-                // Convert months to days for consistency
-                pregnancyDuration = months * 30,
-                // Update doNotMilk status based on pregnancy duration
-                doNotMilk = months * 30 > 200
+                pregnancyDuration = days,
+                doNotMilk = days > 200
             )
         }
     }
 
     fun updatePregnancyDuration(days: Int) {
-        _uiState.update {
-            it.copy(
+        _uiState.update { currentState ->
+            currentState.copy(
                 pregnancyDuration = days,
-                // Convert days to months for consistency
-                pregnancyMonths = days / 30,
-                // Update doNotMilk status
                 doNotMilk = days > 200
             )
         }
@@ -205,6 +212,7 @@ class AddEditCowViewModel(
 
     fun addCorpusLuteum(side: String, info: String) {
         _uiState.update {
+            if (it.corpusLuteum.size >= 2) return@update it
             val updated = it.corpusLuteum.toMutableMap()
             updated[side] = info
             it.copy(corpusLuteum = updated)
@@ -221,6 +229,7 @@ class AddEditCowViewModel(
 
     fun addCorpusRubrum(side: String, info: String) {
         _uiState.update {
+            if (it.corpusRubrum.size >= 2) return@update it
             val updated = it.corpusRubrum.toMutableMap()
             updated[side] = info
             it.copy(corpusRubrum = updated)
@@ -237,6 +246,7 @@ class AddEditCowViewModel(
 
     fun addCyst(side: String, info: String) {
         _uiState.update {
+            if (it.cysts.size >= 2) return@update it
             val updated = it.cysts.toMutableMap()
             updated[side] = info
             it.copy(cysts = updated)
@@ -253,6 +263,7 @@ class AddEditCowViewModel(
 
     fun addFollicle(side: String, info: String) {
         _uiState.update {
+            if (it.follicles.size >= 2) return@update it
             val updated = it.follicles.toMutableMap()
             updated[side] = info
             it.copy(follicles = updated)
@@ -275,65 +286,47 @@ class AddEditCowViewModel(
         _uiState.update { it.copy(comment = comment) }
     }
 
-//    fun calculateAndSetGgpgDates() {
-//        _uiState.value.ggpgFirstG?.let { firstG ->
-//            val dates = Cow("").calculateGgpgDates(firstG)
-//            _uiState.update {
-//                it.copy(
-//                    ggpgSecondG = dates.secondG,
-//                    ggpgP = dates.p,
-//                    ggpgFinalG = dates.finalG
-//                )
-//            }
-//            // Schedule notifications for each date
-////            scheduleGgpgNotifications(dates)
-//        }
-//    }
-//
-//    fun updateGgpgFirstG(date: LocalDate) {
-//        _uiState.update { it.copy(ggpgFirstG = date) }
-//        calculateAndSetGgpgDates()
-//    }
-//
-//    fun updateGgpgSecondG(date: LocalDate) {
-//        _uiState.update { it.copy(ggpgSecondG = date) }
-//    }
-//
-//    fun updateGgpgP(date: LocalDate) {
-//        _uiState.update { it.copy(ggpgP = date) }
-//    }
-//
-//    fun updateGgpgFinalG(date: LocalDate) {
-//        _uiState.update { it.copy(ggpgFinalG = date) }
-//    }
+    fun setGGPGFirstG(date: LocalDate) {
+        _uiState.update { currentState ->
+            // Use kotlinx.datetime's proper methods
+            val secondG = date.plus(DatePeriod(days = 7))
+            val p = secondG.plus(DatePeriod(days = 2))
+            val finalG = p.plus(DatePeriod(days = 2))
 
-//    private fun scheduleGgpgNotifications(dates: GgpgDates) {
-//        notificationService.scheduleGgpgNotification(
-//            dates.firstG,
-//            "GGPG Protocol - First G",
-//            "It's time for the first G treatment",
-//            NotificationService.NOTIFICATION_ID_FIRST_G
-//        )
-//
-//        notificationService.scheduleGgpgNotification(
-//            dates.secondG,
-//            "GGPG Protocol - Second G",
-//            "Time for second G treatment (7 days after first G)",
-//            NotificationService.NOTIFICATION_ID_SECOND_G
-//        )
-//
-//        notificationService.scheduleGgpgNotification(
-//            dates.p,
-//            "GGPG Protocol - P Treatment",
-//            "Time for P treatment (56 hours after second G)",
-//            NotificationService.NOTIFICATION_ID_P
-//        )
-//
-//        notificationService.scheduleGgpgNotification(
-//            dates.finalG,
-//            "GGPG Protocol - Final G",
-//            "Time for final G treatment (2 days after P)",
-//            NotificationService.NOTIFICATION_ID_FINAL_G
-//        )
-//    }
+            // Schedule notifications for each date
+            viewModelScope.launch {
+                notificationService.scheduleGgpgNotification(
+                    date,
+                    "GGPG Protocol - First G",
+                    "Time for the first G treatment",
+                    NotificationService.GGPG_NOTIFICATION_ID_FIRST_G
+                )
+                notificationService.scheduleGgpgNotification(
+                    secondG,
+                    "GGPG Protocol - Second G",
+                    "Time for the second G treatment",
+                    NotificationService.GGPG_NOTIFICATION_ID_SECOND_G
+                )
+                notificationService.scheduleGgpgNotification(
+                    p,
+                    "GGPG Protocol - P Treatment (56 hours after Second G)",
+                    "Time for P treatment",
+                    NotificationService.GGPG_NOTIFICATION_ID_P
+                )
+                notificationService.scheduleGgpgNotification(
+                    finalG,
+                    "GGPG Protocol - Final G",
+                    "Time for the final G treatment",
+                    NotificationService.GGPG_NOTIFICATION_ID_FINAL_G
+                )
+            }
+
+            currentState.copy(
+                ggpgFirstG = date,
+                ggpgSecondG = secondG,
+                ggpgP = p,
+                ggpgFinalG = finalG
+            )
+        }
+    }
 }

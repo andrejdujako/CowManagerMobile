@@ -20,14 +20,14 @@ data class Cow(
     val inseminationDate: @RawValue LocalDate? = null,
     @get:JvmName("getBirthDateLong")
     val birthDate: @RawValue LocalDate? = null,
-//    @get:JvmName("getGgpgFirstGLong")
-//    val ggpgFirstG: @RawValue LocalDate? = null,
-//    @get:JvmName("getGgpgSecondGLong")
-//    val ggpgSecondG: @RawValue LocalDate? = null,
-//    @get:JvmName("getGgpgPLong")
-//    val ggpgP: @RawValue LocalDate? = null,
-//    @get:JvmName("getGgpgFinalGLong")
-//    val ggpgFinalG: @RawValue LocalDate? = null,
+    @get:JvmName("getGgpgFirstGLong")
+    val ggpgFirstG: @RawValue LocalDate? = null,
+    @get:JvmName("getGgpgSecondGLong")
+    val ggpgSecondG: @RawValue LocalDate? = null,
+    @get:JvmName("getGgpgPLong")
+    val ggpgP: @RawValue LocalDate? = null,
+    @get:JvmName("getGgpgFinalGLong")
+    val ggpgFinalG: @RawValue LocalDate? = null,
     @get:JvmName("getAppliedHormones")
     val appliedHormones: @RawValue Map<String, LocalDate> = emptyMap(),
     val corpusLuteum: Map<String, String> = emptyMap(),
@@ -46,6 +46,27 @@ data class Cow(
         val needsNotification: Boolean = true
     )
 
+    // This initializer block will ensure doNotMilk is set correctly when the object is created
+    init {
+        doNotMilk = shouldNotMilk()
+    }
+
+    fun updatePregnancyMonths(months: Int) {
+        pregnancyMonths = months
+        pregnancyDuration = months * 30  // Approximate days in a month
+        doNotMilk = shouldNotMilk()
+    }
+
+    fun setPregnancyDays(days: Int) {
+        pregnancyDuration = days
+        pregnancyMonths = days / 30  // Approximate conversion to months
+        doNotMilk = shouldNotMilk()
+    }
+
+    fun shouldNotMilk(): Boolean {
+        return pregnant && pregnancyDuration > 200
+    }
+
     // Firestore serialization helpers
     @get:Exclude
     private val inseminationDateLong: Long?
@@ -55,21 +76,21 @@ data class Cow(
     private val birthDateLong: Long?
         get() = birthDate?.toEpochDays()?.toLong()
 
-//    @get:Exclude
-//    private val ggpgFirstGLong: Long?
-//        get() = ggpgFirstG?.toEpochDays()?.toLong()
-//
-//    @get:Exclude
-//    private val ggpgSecondGLong: Long?
-//        get() = ggpgSecondG?.toEpochDays()?.toLong()
-//
-//    @get:Exclude
-//    private val ggpgPLong: Long?
-//        get() = ggpgP?.toEpochDays()?.toLong()
-//
-//    @get:Exclude
-//    private val ggpgFinalGLong: Long?
-//        get() = ggpgFinalG?.toEpochDays()?.toLong()
+    @get:Exclude
+    private val ggpgFirstGLong: Long?
+        get() = ggpgFirstG?.toEpochDays()?.toLong()
+
+    @get:Exclude
+    private val ggpgSecondGLong: Long?
+        get() = ggpgSecondG?.toEpochDays()?.toLong()
+
+    @get:Exclude
+    private val ggpgPLong: Long?
+        get() = ggpgP?.toEpochDays()?.toLong()
+
+    @get:Exclude
+    private val ggpgFinalGLong: Long?
+        get() = ggpgFinalG?.toEpochDays()?.toLong()
 
     @get:Exclude
     private val appliedHormonesLongMap: Map<String, Long>
@@ -91,18 +112,18 @@ data class Cow(
                 birthDate = (data["birthDateLong"] as? Long)?.let {
                     LocalDate.fromEpochDays(it.toInt())
                 },
-//                ggpgFirstG = (data["ggpgFirstGLong"] as? Long)?.let {
-//                    LocalDate.fromEpochDays(it.toInt())
-//                },
-//                ggpgSecondG = (data["ggpgSecondGLong"] as? Long)?.let {
-//                    LocalDate.fromEpochDays(it.toInt())
-//                },
-//                ggpgP = (data["ggpgPLong"] as? Long)?.let {
-//                    LocalDate.fromEpochDays(it.toInt())
-//                },
-//                ggpgFinalG = (data["ggpgFinalGLong"] as? Long)?.let {
-//                    LocalDate.fromEpochDays(it.toInt())
-//                },
+                ggpgFirstG = (data["ggpgFirstGLong"] as? Long)?.let {
+                    LocalDate.fromEpochDays(it.toInt())
+                },
+                ggpgSecondG = (data["ggpgSecondGLong"] as? Long)?.let {
+                    LocalDate.fromEpochDays(it.toInt())
+                },
+                ggpgP = (data["ggpgPLong"] as? Long)?.let {
+                    LocalDate.fromEpochDays(it.toInt())
+                },
+                ggpgFinalG = (data["ggpgFinalGLong"] as? Long)?.let {
+                    LocalDate.fromEpochDays(it.toInt())
+                },
                 appliedHormones = (data["appliedHormonesMap"] as? Map<String, Long>)?.mapValues {
                     LocalDate.fromEpochDays(it.value.toInt())
                 } ?: emptyMap(),
@@ -125,13 +146,13 @@ data class Cow(
             "pregnant" to pregnant,
             "pregnancyDuration" to pregnancyDuration,
             "pregnancyMonths" to pregnancyMonths,
-            "doNotMilk" to doNotMilk,
+            "doNotMilk" to shouldNotMilk(), // Always calculate the current value
             "inseminationDateLong" to inseminationDateLong,
             "birthDateLong" to birthDateLong,
-//            "ggpgFirstGLong" to ggpgFirstGLong,
-//            "ggpgSecondGLong" to ggpgSecondGLong,
-//            "ggpgPLong" to ggpgPLong,
-//            "ggpgFinalGLong" to ggpgFinalGLong,
+            "ggpgFirstGLong" to ggpgFirstGLong,
+            "ggpgSecondGLong" to ggpgSecondGLong,
+            "ggpgPLong" to ggpgPLong,
+            "ggpgFinalGLong" to ggpgFinalGLong,
             "appliedHormonesMap" to appliedHormonesLongMap,
             "corpusLuteum" to corpusLuteum,
             "corpusRubrum" to corpusRubrum,
@@ -158,26 +179,6 @@ data class Cow(
             finalG = finalG,
             needsNotification = true
         )
-    }
-
-    fun updatePregnancyMonths(months: Int) {
-        pregnancyMonths = months
-        pregnancyDuration = months * 30  // Approximate days in a month
-        updateDoNotMilkStatus()
-    }
-
-    fun setPregnancyDays(days: Int) {
-        pregnancyDuration = days
-        pregnancyMonths = days / 30  // Approximate conversion to months
-        updateDoNotMilkStatus()
-    }
-
-    private fun updateDoNotMilkStatus() {
-        doNotMilk = shouldNotMilk()
-    }
-
-    fun shouldNotMilk(): Boolean {
-        return pregnant && pregnancyDuration > 200
     }
 }
 
