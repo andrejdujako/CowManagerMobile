@@ -169,4 +169,33 @@ class CowRepository {
             }
         awaitClose { subscription.remove() }
     }
+
+    fun observeCowById(cowId: String): Flow<Cow?> = callbackFlow {
+        val subscription = cowsCollection.document(cowId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "Error observing cow", error)
+                    trySend(null)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && snapshot.exists()) {
+                    try {
+                        val data = snapshot.data
+                        if (data != null) {
+                            val cow = Cow.fromFirestore(data + mapOf("id" to snapshot.id))
+                            trySend(cow)
+                        } else {
+                            trySend(null)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error converting cow document", e)
+                        trySend(null)
+                    }
+                } else {
+                    trySend(null)
+                }
+            }
+        awaitClose { subscription.remove() }
+    }
 }

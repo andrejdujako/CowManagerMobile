@@ -10,10 +10,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.new_cow_manager.data.model.Cow
 import com.example.new_cow_manager.ui.viewmodels.CowListViewModel
+import kotlinx.datetime.Clock
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,59 +102,71 @@ fun CowCard(
 ) {
     ElevatedCard(
         onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth()
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = "Cow #${cow.cowNumber}",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                AssistChip(
-                    onClick = { },
-                    label = {
-                        Text(if (cow.pregnant) "Pregnant" else "Not Pregnant")
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                        labelColor = if (cow.pregnant)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Text(
+                    text = "Cow #${cow.cowNumber}",
+                    style = MaterialTheme.typography.titleMedium
                 )
-
-                if (cow.pregnant) {
-                    AssistChip(
-                        onClick = { },
-                        label = { Text("${cow.pregnancyDuration} days") }
+                if (cow.doNotMilk) {
+                    Text(
+                        text = "DO NOT MILK",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            cow.inseminationDate?.let {
-                Text(
-                    text = "Insemination: $it",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
+            // Show diagnosis if available
             if (cow.diagnosis.isNotBlank()) {
                 Text(
                     text = "Diagnosis: ${cow.diagnosis}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // GGPG Protocol Status
+            cow.ggpgFirstG?.let { firstG ->
+                val currentDate = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                val (nextStepDate, nextStepType) = when {
+                    currentDate < firstG -> firstG to "First G"
+                    currentDate < cow.ggpgSecondG!! -> cow.ggpgSecondG to "Second G"
+                    currentDate < cow.ggpgP!! -> cow.ggpgP to "P Treatment"
+                    currentDate < cow.ggpgFinalG!! -> cow.ggpgFinalG to "Final G"
+                    else -> null to null
+                }
+
+                if (nextStepDate != null && nextStepType != null) {
+                    Text(
+                        text = "Next GGPG step: $nextStepType on $nextStepDate",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Text(
+                        text = "GGPG Protocol completed",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+
+            // Show pregnancy status and duration
+            if (cow.pregnant) {
+                Text(
+                    text = "Pregnant (${cow.pregnancyDuration} days)",
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
